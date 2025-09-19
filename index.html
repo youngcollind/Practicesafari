@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Practice Safari</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+  <style>
+    /* Animated rainbow background */
+    body {
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(270deg, #ff6ec4, #7873f5, #4ade80, #facc15, #f87171);
+      background-size: 1000% 1000%;
+      animation: rainbow 20s ease infinite;
+      color: #2b1d4a;
+    }
+    @keyframes rainbow {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+
+    h1 {
+      font-family: 'Chewy', cursive;
+      font-size: 3em;
+      margin-bottom: 10px;
+    }
+    #timer {
+      font-family: 'Chewy', cursive;
+      font-size: 3em;
+      margin: 20px 0;
+      color: #1e3a8a;
+    }
+    button {
+      font-family: 'Gloria Hallelujah', cursive;
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+    }
+    button:active, button.active {
+      background-color: #388E3C;
+    }
+    #animalDisplay {
+      margin-top: 20px;
+    }
+    #animalDisplay img {
+      max-width: 220px;
+      margin-top: 10px;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    #affirmation {
+      font-family: 'Gloria Hallelujah', cursive;
+      font-size: 1.6em;
+      margin-top: 20px;
+      color: #312e81;
+      font-style: italic;
+    }
+    label {
+      font-family: 'Gloria Hallelujah', cursive;
+      font-size: 1.2em;
+      margin-right: 10px;
+      color: #1e3a8a;
+    }
+    select {
+      font-size: 1em;
+      padding: 5px;
+      border-radius: 8px;
+      font-family: 'Gloria Hallelujah', cursive;
+    }
+    canvas {
+      display: block;
+      margin: 20px auto;
+      border: 2px solid #1e3a8a;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1>Practice Safari</h1>
+  <div>
+    <label for="lessonDay">Lesson Day:</label>
+    <select id="lessonDay">
+      <option value="0">Sunday</option>
+      <option value="1">Monday</option>
+      <option value="2">Tuesday</option>
+      <option value="3">Wednesday</option>
+      <option value="4">Thursday</option>
+      <option value="5">Friday</option>
+      <option value="6">Saturday</option>
+    </select>
+  </div>
+  <div id="timer">00:00</div>
+  <button id="startBtn">Start Practice</button>
+  <button id="pauseBtn">Pause Practice</button>
+  <canvas id="volumeMeter" width="400" height="50"></canvas>
+  <div id="animalDisplay"></div>
+  <div id="affirmation"></div>
+
+  <script>
+    let timer;
+    let totalSeconds = parseInt(localStorage.getItem("practiceProgress")) || 0;
+    let running = false;
+    let stopDrawing = false; // NEW — controls rainbow meter
+    let currentLessonDay = parseInt(localStorage.getItem("lessonDay")) || 0;
+    let lastResetDate = localStorage.getItem("lastResetDate");
+
+    document.getElementById("lessonDay").value = currentLessonDay;
+
+    const animals = {
+      10: "Worm", 20: "Snail", 30: "Turtle", 40: "Mouse", 50: "Goldfish",
+      60: "Duck", 70: "Koala", 80: "Butterfly", 90: "Kitty", 100: "Giraffe",
+      110: "Dog", 120: "Octopus", 130: "Elephant", 140: "Fox", 150: "Bunny",
+      160: "Horse", 170: "Whale", 180: "Wolf", 190: "Tiger", 200: "Eagle",
+      210: "Lion", 220: "Dolphin", 230: "Phoenix", 240: "Alien", 250: "Dino",
+      260: "Wizard", 270: "Dragon", 280: "Superhero", 290: "Robo Duck",
+      300: "Robo Koala", 310: "Robo Kitty", 320: "Robo Giraffe", 330: "Robo Dog",
+      340: "Robo Octopus", 350: "Robo Elephant", 360: "Robo Fox", 370: "Robo Bunny",
+      380: "Robo Horse", 390: "Robo Whale", 400: "Robo Wolf", 410: "Robo Tiger",
+      420: "Robo Eagle", 430: "Robo Lion", 440: "Robo Dolphin", 450: "Robo Phoenix",
+      460: "Robo Alien", 470: "Robo Dino", 480: "Robo Wizard", 490: "Robo Dragon",
+      500: "Robo Superhero"
+    };
+
+    const affirmations = [
+      "Great job!", "You’re on fire!", "Keep it up!", "Fantastic work!", "Amazing focus!",
+      "You’re unstoppable!", "Way to go!", "Keep rocking!", "Excellent effort!", "Super work!",
+      "You nailed it!", "Incredible progress!", "Sharp playing!", "Focus is strong!", "Wonderful practice!",
+      "Nice dedication!", "Proud of your effort!", "Impressive!", "Determined work!", "Brilliant focus!",
+      "Strong practice session!", "You’re shining!", "Consistency pays!", "Effort is excellent!",
+      "Skill is growing!", "Confidence building!", "Momentum strong!", "Resilient spirit!",
+      "Keep pushing!", "Focused energy!", "Wonderful flow!", "Great persistence!", "Your work shows!",
+      "You inspire yourself!", "Dedication shines!", "Each step counts!", "Stronger every day!",
+      "Practice is progress!", "Growth is steady!", "Stay strong!", "Winning attitude!",
+      "Musical mastery grows!", "Persistence wins!", "Keep strumming!", "Keep grooving!",
+      "Stay inspired!", "Talent shines!", "You’ve got this!", "Keep moving forward!",
+      "Fantastic rhythm!", "Flow is happening!", "Great technique!", "Daily progress matters!",
+      "Solid work ethic!", "Brilliant sound!", "Practice powerhouse!", "Growth mindset strong!",
+      "Persistence is key!", "Confidence grows!", "Keep refining!", "Excellent tone!",
+      "Keep building!", "Daily effort shows!", "Determined energy!", "Consistency wins!",
+      "Stay the course!", "Focused journey!", "Discipline grows!", "Great strength!",
+      "Sounding awesome!", "Keep smiling!", "Practice magic!", "On the right track!",
+      "Impressive growth!", "Talented dedication!", "Amazing spirit!", "Brilliant stamina!",
+      "Resilient and strong!", "Effort equals results!", "You’re winning!", "Practice champion!",
+      "Stay motivated!", "Keep thriving!", "Consistency rules!", "Positive practice energy!",
+      "Talent in motion!", "Dedication wins!", "Joyful practice!", "Keep believing!",
+      "Excellent stamina!", "Focus steady!", "Mindful music!", "Strength shines!",
+      "Practice discipline!", "Keep grinding!", "Persistence in action!", "Skill power!",
+      "Amazing determination!", "Practice warrior!", "Resilient practice!", "Winning practice!"
+    ];
+
+    function displayTime() {
+      let minutes = Math.floor(totalSeconds / 60);
+      let seconds = totalSeconds % 60;
+      document.getElementById("timer").textContent =
+        String(minutes).padStart(2, '0') + ":" + String(seconds).padStart(2, '0');
+    }
+
+    function checkLessonReset() {
+  // Smart weekly reset: if we've *crossed* the selected lesson weekday
+  // since the last reset, wipe saved progress now.
+  const today = new Date();
+  const lastResetStr = localStorage.getItem("lastResetDate"); // whatever was saved before
+  const resetWeekday = currentLessonDay; // 0 = Sunday .. 6 = Saturday
+
+  // If there was never a stored lastResetDate, initialize it to today and exit.
+  if (!lastResetStr) {
+    localStorage.setItem("lastResetDate", today.toDateString());
+    lastResetDate = localStorage.getItem("lastResetDate");
+    return;
+  }
+
+  // Parse stored date (works whether it was stored with toDateString() or ISO)
+  const lastReset = new Date(lastResetStr);
+  // If stored value is invalid for some reason, reinitialize and exit
+  if (isNaN(lastReset.getTime())) {
+    localStorage.setItem("lastResetDate", today.toDateString());
+    lastResetDate = localStorage.getItem("lastResetDate");
+    return;
+  }
+
+  // Helper: did we pass the reset weekday between (lastReset + 1 day) and today inclusive?
+  function hasCrossedResetDay(sinceDate, upToDate, weekday) {
+    // start the day after the stored reset
+    let d = new Date(sinceDate.getFullYear(), sinceDate.getMonth(), sinceDate.getDate());
+    d.setDate(d.getDate() + 1);
+    const end = new Date(upToDate.getFullYear(), upToDate.getMonth(), upToDate.getDate());
+    while (d <= end) {
+      if (d.getDay() === weekday) return true;
+      d.setDate(d.getDate() + 1);
+    }
+    return false;
+  }
+
+  // If we crossed the lesson day since the last reset, do the reset now.
+  if (hasCrossedResetDay(lastReset, today, resetWeekday)) {
+    totalSeconds = 0;
+    localStorage.removeItem("practiceProgress"); // clear saved practice time
+    const newResetStr = today.toDateString();
+    localStorage.setItem("lastResetDate", newResetStr);
+    lastResetDate = newResetStr; // also update the in-memory var
+    // update UI immediately:
+    displayTime();
+    document.getElementById("animalDisplay").innerHTML = '<p>Keep going!</p>';
+    document.getElementById("affirmation").textContent = '';
+  }
+}
+
+
+    function tick() {
+      totalSeconds++;
+      localStorage.setItem("practiceProgress", totalSeconds);
+      displayTime();
+
+      if (totalSeconds % 300 === 0) {
+        const milestone = (totalSeconds / 300) * 10;
+        if (animals[milestone]) {
+          document.getElementById("animalDisplay").innerHTML =
+            `<p>You've achieved ${animals[milestone]}!</p>
+             <img src="https://raw.githubusercontent.com/youngcollind/practicebuddy2/refs/heads/main/${milestone}%20-%20${animals[milestone]}.png" alt="${animals[milestone]}">`;
+        }
+        const randomAffirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
+        document.getElementById("affirmation").textContent = randomAffirmation;
+      }
+    }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      if (!running) {
+        running = true;
+        document.getElementById("startBtn").classList.add("active");
+        timer = setInterval(tick, 1000);
+        stopDrawing = false; // NEW — allow drawing
+        initMic();
+      }
+    });
+
+    document.getElementById("pauseBtn").addEventListener("click", () => {
+      running = false;
+      clearInterval(timer);
+      stopDrawing = true; // NEW — stop drawing
+      document.getElementById("startBtn").classList.remove("active");
+    });
+
+    document.getElementById("lessonDay").addEventListener("change", (e) => {
+      currentLessonDay = parseInt(e.target.value);
+      localStorage.setItem("lessonDay", currentLessonDay);
+    });
+
+    function initMic() {
+      const canvas = document.getElementById("volumeMeter");
+      const ctx = canvas.getContext("2d");
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        source.connect(analyser);
+
+        function draw() {
+          if (stopDrawing) return; // NEW — cancel loop on pause
+          requestAnimationFrame(draw);
+          analyser.getByteFrequencyData(dataArray);
+          const volume = dataArray.reduce((a, b) => a + b) / bufferLength;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // RAINBOW FILL
+          const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+          grad.addColorStop(0, '#ff0000');
+          grad.addColorStop(0.17, '#ff7f00');
+          grad.addColorStop(0.33, '#ffff00');
+          grad.addColorStop(0.5, '#00ff00');
+          grad.addColorStop(0.67, '#0000ff');
+          grad.addColorStop(0.83, '#4b0082');
+          grad.addColorStop(1, '#8f00ff');
+          ctx.fillStyle = grad;
+
+          const width = Math.min(canvas.width, (volume / 255) * canvas.width);
+          ctx.fillRect(0, 0, width, canvas.height);
+        }
+        draw();
+      }).catch(err => {
+        console.error("Microphone error:", err);
+      });
+    }
+
+    checkLessonReset();
+    displayTime();
+  </script>
+</body>
+</html>
